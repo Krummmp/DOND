@@ -3,7 +3,9 @@ const canvas = document.getElementById('canvas');
 const context = canvas.getContext('2d');
 
 // Setup camera
-navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: { exact: "environment" } }
+}).then((stream) => {
   video.srcObject = stream;
 });
 
