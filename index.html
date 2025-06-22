@@ -2,21 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="Deal or No Deal Object Tracker" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="description" content="Deal or No Deal Grid Tracker with OpenCV.js" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Deal or No Deal Tracker</title>
     <style>
-      /* Remove default margins and ensure elements cover the page */
+      /* Baseline CSS to fill the viewport */
       body,
       html {
         margin: 0;
         padding: 0;
         overflow: hidden;
       }
-      /* Video fills the background */
       #videoElement {
         position: absolute;
         top: 0;
@@ -26,7 +22,6 @@
         object-fit: cover;
         z-index: 0;
       }
-      /* Canvas over the video for grid and labels */
       #canvasOverlay {
         position: absolute;
         top: 0;
@@ -37,12 +32,13 @@
     </style>
   </head>
   <body>
-    <!-- The video element shows the camera feed -->
+    <!-- Camera feed -->
     <video id="videoElement" autoplay playsinline muted></video>
-    <!-- The canvas overlay is used for drawing the grid and cell numbers -->
+    <!-- Canvas overlay for grid and numbers -->
     <canvas id="canvasOverlay"></canvas>
-    
-    <!-- Include the tracker logic -->
+    <!-- Load OpenCV.js from a CDN. The onload callback ensures our code knows when it's ready. -->
+    <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
+    <!-- Our app logic -->
     <script src="tracker.js"></script>
   </body>
 </html>
