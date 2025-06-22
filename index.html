@@ -1,24 +1,48 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Deal Tracker - Grid Logger</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    #video, #canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-    }
-  </style>
-</head>
-<body>
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas"></canvas>
-
-  <script async src="https://docs.opencv.org/master/opencv.js" onload="onOpenCvReady();"></script>
-  <script src="tracker.js"></script>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Deal or No Deal Object Tracker" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Deal or No Deal Tracker</title>
+    <style>
+      /* Remove default margins and ensure elements cover the page */
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      /* Video fills the background */
+      #videoElement {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+      }
+      /* Canvas over the video for grid and labels */
+      #canvasOverlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The video element shows the camera feed -->
+    <video id="videoElement" autoplay playsinline muted></video>
+    <!-- The canvas overlay is used for drawing the grid and cell numbers -->
+    <canvas id="canvasOverlay"></canvas>
+    
+    <!-- Include the tracker logic -->
+    <script src="tracker.js"></script>
+  </body>
 </html>
