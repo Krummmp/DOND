@@ -1,18 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Deal Tracker</title>
+  <title>Deal Tracker - Grid Logger</title>
   <style>
-    #canvas { position: absolute; top: 0; left: 0; }
-    video, canvas { max-width: 100vw; max-height: 100vh; }
     body { margin: 0; overflow: hidden; }
+    #video, #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline></video>
+  <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas"></canvas>
 
-  <script src="https://cdn.jsdelivr.net/npm/tracking/build/tracking-min.js"></script>
+  <script async src="https://docs.opencv.org/master/opencv.js" onload="onOpenCvReady();"></script>
   <script src="tracker.js"></script>
 </body>
 </html>
