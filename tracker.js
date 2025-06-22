@@ -1,96 +1,142 @@
-let video = document.getElementById('video');
-let canvas = document.getElementById('canvas');
-let ctx = canvas.getContext('2d');
+/**
+ * tracker.js
+ * 
+ * This script:
+ * 1. Accesses the phone's environment-camera.
+ * 2. Draws the video feed.
+ * 3. Overlays a 4×4 grid.
+ * 4. Displays two numbers per grid cell:
+ *    - A static number (the cell’s index).
+ *    - A dynamic number (simulated here as a “tracked case” number).
+ */
 
-let streaming = false;
-let cap, src, gray, prevGray;
-let frameCount = 0;
-let positions = [];
+// Get references to HTML elements.
+const video = document.getElementById("videoElement");
+const canvas = document.getElementById("canvasOverlay");
+const ctx = canvas.getContext("2d");
 
-function onOpenCvReady() {
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { exact: "environment" } }
-  }).then(function(stream) {
-    video.srcObject = stream;
-    video.play();
-  }).catch(function(err) {
-    console.error('Error: ' + err);
-  });
+const GRID_ROWS = 4;
+const GRID_COLS = 4;
 
-  video.addEventListener('playing', () => {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    cap = new cv.VideoCapture(video);
-    src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
-    gray = new cv.Mat();
-    prevGray = new cv.Mat();
+// This array will represent the current dynamic state (which case is in each cell).
+let dynamicMapping = [];
 
-    requestAnimationFrame(processVideo);
-  });
+/**
+ * Initialize the dynamic mapping array with cell numbers 1 to 16.
+ * Then shuffle the array to simulate shuffled cases.
+ */
+function initDynamicMapping() {
+  dynamicMapping = [];
+  for (let i = 1; i <= GRID_ROWS * GRID_COLS; i++) {
+    dynamicMapping.push(i);
+  }
+  shuffleArray(dynamicMapping);
 }
 
-function processVideo() {
-  cap.read(src);
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-
-  if (!prevGray.empty()) {
-    let diff = new cv.Mat();
-    cv.absdiff(gray, prevGray, diff);
-    cv.threshold(diff, diff, 25, 255, cv.THRESH_BINARY);
-    let contours = new cv.MatVector();
-    let hierarchy = new cv.Mat();
-    cv.findContours(diff, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    let cols = 4, rows = 4;
-    let cellWidth = canvas.width / cols;
-    let cellHeight = canvas.height / rows;
-
-    ctx.strokeStyle = 'lime';
-    for (let i = 1; i < cols; i++) {
-      ctx.beginPath();
-      ctx.moveTo(i * cellWidth, 0);
-      ctx.lineTo(i * cellWidth, canvas.height);
-      ctx.stroke();
-    }
-    for (let j = 1; j < rows; j++) {
-      ctx.beginPath();
-      ctx.moveTo(0, j * cellHeight);
-      ctx.lineTo(canvas.width, j * cellHeight);
-      ctx.stroke();
-    }
-
-    for (let i = 0; i < contours.size(); ++i) {
-      let rect = cv.boundingRect(contours.get(i));
-      if (rect.width * rect.height > 500) {
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-
-        let centerX = rect.x + rect.width / 2;
-        let centerY = rect.y + rect.height / 2;
-        let col = Math.floor(centerX / cellWidth);
-        let row = Math.floor(centerY / cellHeight);
-        let cellId = `R${row + 1}C${col + 1}`;
-
-        ctx.fillStyle = 'red';
-        ctx.fillText(cellId, rect.x, rect.y - 5);
-
-        positions.push(cellId);
-      }
-    }
-
-    contours.delete(); hierarchy.delete(); diff.delete();
+/**
+ * Fisher-Yates shuffle algorithm to randomize an array.
+ */
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
   }
+}
 
-  gray.copyTo(prevGray);
-  frameCount++;
+/**
+ * Update the dynamic mapping periodically.
+ * In a real tracking solution, this would be updated based on your object detection algorithm.
+ */
+function updateDynamicMapping() {
+  shuffleArray(dynamicMapping);
+}
 
-  if (frameCount < 300) {
-    requestAnimationFrame(processVideo);
-  } else {
-    console.log('Final Positions:', [...new Set(positions)]);
-    alert('Tracking complete. Open console for results.');
+// Request the environment (rear) camera. (Note: Some browsers may not recognize the 'exact' constraint on non-mobile devices)
+navigator.mediaDevices
+  .getUserMedia({ video: { facingMode: { exact: "environment" } } })
+  .then((stream) => {
+    video.srcObject = stream;
+  })
+  .catch((err) => {
+    console.error("Error accessing the camera: ", err);
+  });
+
+// When the video metadata is loaded, set the canvas dimensions and start drawing.
+video.addEventListener("loadedmetadata", () => {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  initDynamicMapping();
+  
+  // Simulate tracking updates every 2 seconds.
+  setInterval(updateDynamicMapping, 2000);
+  
+  // Start the drawing loop.
+  requestAnimationFrame(draw);
+});
+
+/**
+ * The draw function clears the canvas and redraws the grid overlay on every animation frame.
+ */
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  requestAnimationFrame(draw);
+}
+
+/**
+ * Draws a 4×4 grid and renders two numbers in each cell:
+ * - Static number (cell index) at the top left.
+ * - Dynamic number (the tracked case) at the bottom right.
+ */
+function drawGrid() {
+  const cellWidth = canvas.width / GRID_COLS;
+  const cellHeight = canvas.height / GRID_ROWS;
+
+  // Set grid style.
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+  ctx.lineWidth = 2;
+
+  // Draw vertical lines.
+  for (let i = 0; i <= GRID_COLS; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * cellWidth, 0);
+    ctx.lineTo(i * cellWidth, canvas.height);
+    ctx.stroke();
+  }
+  // Draw horizontal lines.
+  for (let j = 0; j <= GRID_ROWS; j++) {
+    ctx.beginPath();
+    ctx.moveTo(0, j * cellHeight);
+    ctx.lineTo(canvas.width, j * cellHeight);
+    ctx.stroke();
+  }
+  
+  // Set text styling for the numbers.
+  ctx.font = "20px Arial";
+  ctx.textBaseline = "top";
+
+  let cellIndex = 0;
+  for (let row = 0; row < GRID_ROWS; row++) {
+    for (let col = 0; col < GRID_COLS; col++) {
+      cellIndex++; // Number cells from 1 to 16
+      
+      // Calculate the top-left corner of the cell.
+      let x = col * cellWidth;
+      let y = row * cellHeight;
+      
+      // Draw the static number in the top left corner (cyan).
+      ctx.fillStyle = "cyan";
+      ctx.fillText(`#${cellIndex}`, x + 5, y + 5);
+      
+      // Draw the dynamic number (tracked case) in the bottom right corner (lime).
+      ctx.fillStyle = "lime";
+      let dynamicText = dynamicMapping[cellIndex - 1] || 0;
+      
+      // Measure text width to adjust bottom-right alignment.
+      const textMetrics = ctx.measureText(dynamicText.toString());
+      const textX = x + cellWidth - textMetrics.width - 5;
+      const textY = y + cellHeight - 25; // Adjust vertical position with a bit of padding.
+      ctx.fillText(dynamicText.toString(), textX, textY);
+    }
   }
 }
