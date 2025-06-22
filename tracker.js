@@ -51,8 +51,9 @@ setInterval(() => {
 }, 2000);
 
 // ----- Camera Setup -----
+// Use a loose constraint to let the browser choose the best rear camera.
 navigator.mediaDevices
-  .getUserMedia({ video: { facingMode: { exact: "environment" } } })
+  .getUserMedia({ video: { facingMode: "environment" } })
   .then((stream) => {
     video.srcObject = stream;
   })
@@ -67,7 +68,7 @@ video.addEventListener("loadedmetadata", () => {
   initDynamicMapping();
   // Start the drawing loop.
   requestAnimationFrame(draw);
-  // If OpenCV is ready, start grid detection
+  // If OpenCV is ready, start grid detection every second.
   if (opencvReady) {
     setInterval(() => {
       let detected = detectGrid();
@@ -79,8 +80,6 @@ video.addEventListener("loadedmetadata", () => {
 });
 
 // ----- Main Draw Loop -----
-// This loop clears the canvas and draws a grid overlay.
-// If gridCorners are available (the board was detected), we use them for our 4x4 grid. Otherwise, we fall back to a static
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (gridCorners) {
@@ -92,7 +91,6 @@ function draw() {
 }
 
 // ----- Grid Drawing Functions -----
-// When no board is detected, draw a full–canvas grid.
 function drawStaticGrid() {
   const cellWidth = canvas.width / GRID_COLS;
   const cellHeight = canvas.height / GRID_ROWS;
@@ -134,7 +132,7 @@ function drawStaticGrid() {
   }
 }
 
-// If a grid is detected, use its 4 corners to draw an interpolated grid.
+// Use detected board corners to draw an interpolated grid.
 function drawGridUsingCorners(corners) {
   // corners is an array: [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]
   const tl = { x: corners[0], y: corners[1] };
@@ -154,7 +152,6 @@ function drawGridUsingCorners(corners) {
   ctx.stroke();
 
   // Draw internal grid lines using bilinear interpolation.
-  // Horizontal grid lines
   for (let i = 1; i < GRID_ROWS; i++) {
     let alpha = i / GRID_ROWS;
     let start = {
@@ -170,7 +167,6 @@ function drawGridUsingCorners(corners) {
     ctx.lineTo(end.x, end.y);
     ctx.stroke();
   }
-  // Vertical grid lines
   for (let j = 1; j < GRID_COLS; j++) {
     let beta = j / GRID_COLS;
     let start = {
@@ -192,15 +188,15 @@ function drawGridUsingCorners(corners) {
   for (let row = 0; row < GRID_ROWS; row++) {
     for (let col = 0; col < GRID_COLS; col++) {
       cellIndex++;
-      // For each cell, compute its top-left and bottom-right positions via bilinear interpolation.
+      // Compute the cell corners via bilinear interpolation.
       let cellTl = innerInterpolate(tl, tr, bl, br, row / GRID_ROWS, col / GRID_COLS);
       let cellBr = innerInterpolate(tl, tr, bl, br, (row + 1) / GRID_ROWS, (col + 1) / GRID_COLS);
 
-      // Static label in top-left of the cell.
+      // Static label (top-left)
       ctx.fillStyle = "cyan";
       ctx.font = "16px Arial";
       ctx.fillText(`#${cellIndex}`, cellTl.x + 5, cellTl.y + 5);
-      // Dynamic label in bottom-right of the cell.
+      // Dynamic label (bottom-right)
       ctx.fillStyle = "lime";
       let dyn = dynamicMapping[cellIndex - 1] || 0;
       let text = dyn.toString();
@@ -210,9 +206,8 @@ function drawGridUsingCorners(corners) {
   }
 }
 
-// Bilinear interpolation:
+// Bilinear interpolation function.
 function innerInterpolate(tl, tr, bl, br, rowFrac, colFrac) {
-  // First, interpolate along the top and bottom edges.
   let top = {
     x: tl.x + colFrac * (tr.x - tl.x),
     y: tl.y + colFrac * (tr.y - tl.y),
@@ -221,7 +216,6 @@ function innerInterpolate(tl, tr, bl, br, rowFrac, colFrac) {
     x: bl.x + colFrac * (br.x - bl.x),
     y: bl.y + colFrac * (br.y - bl.y),
   };
-  // Then, interpolate between these two points.
   return {
     x: top.x + rowFrac * (bottom.x - top.x),
     y: top.y + rowFrac * (bottom.y - top.y),
@@ -241,28 +235,28 @@ function detectGrid() {
   let gray = new cv.Mat();
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
 
-  // Apply Gaussian Blur to reduce noise.
+  // Apply Gaussian blur.
   let blurred = new cv.Mat();
   cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
 
-  // Use Canny edge detection.
+  // Detect edges using Canny.
   let edges = new cv.Mat();
   cv.Canny(blurred, edges, 50, 150);
 
-  // Find contours from the edges.
+  // Find contours.
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
   cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let detectedCorners = null;
-  // Look through the contours for a quadrilateral of large enough area.
+  // Look through contours for a large quadrilateral.
   for (let i = 0; i < contours.size(); i++) {
     let cnt = contours.get(i);
     let approx = new cv.Mat();
     cv.approxPolyDP(cnt, approx, 0.02 * cv.arcLength(cnt, true), true);
     if (approx.rows === 4) {
       let area = cv.contourArea(approx);
-      if (area > 10000) { // adjust threshold as needed based on your game’s size
+      if (area > 10000) { // adjust this threshold if necessary
         detectedCorners = getSortedCorners(approx);
         approx.delete();
         cnt.delete();
@@ -273,7 +267,7 @@ function detectGrid() {
     cnt.delete();
   }
 
-  // Cleanup OpenCV objects.
+  // Clean up.
   src.delete();
   gray.delete();
   blurred.delete();
@@ -284,17 +278,13 @@ function detectGrid() {
   return detectedCorners;
 }
 
-// Given a quadrilateral contour, extract and sort its corners in order:
-// Top-left, Top-right, Bottom-right, Bottom-left.
+// Sort corners in order: Top-left, Top-right, Bottom-right, Bottom-left.
 function getSortedCorners(quadMat) {
-  // Extract the four points.
   let corners = [];
-  // quadMat.data32S holds the coordinates.
   for (let i = 0; i < quadMat.rows; i++) {
     let offset = i * quadMat.cols;
     corners.push({ x: quadMat.data32S[offset], y: quadMat.data32S[offset + 1] });
   }
-  // Sort by y coordinate.
   corners.sort((a, b) => a.y - b.y);
   let top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
   let bottom = corners.slice(2, 4).sort((a, b) => a.x - b.x);
