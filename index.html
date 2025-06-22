@@ -1,44 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="description" content="Deal or No Deal Grid Tracker with OpenCV.js" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Deal or No Deal Tracker</title>
-    <style>
-      /* Fill the viewport */
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-      /* Camera feed */
-      #videoElement {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        z-index: 0;
-      }
-      /* Canvas overlay */
-      #canvasOverlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-        pointer-events: none;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Using playsinline & webkit-playsinline improves mobile support -->
-    <video id="videoElement" autoplay playsinline webkit-playsinline muted></video>
-    <canvas id="canvasOverlay"></canvas>
-    <!-- Load OpenCV.js from a CDN; ensures code runs when ready -->
-    <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
-    <script src="tracker.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal or No Deal Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Deal or No Deal Case Tracker</h1>
+  <div id="container">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display: none;"></canvas>
+    <div id="grid-container">
+      <h2>Case Grid</h2>
+      <div id="grid" class="grid">
+        <!-- 4x4 grid for set cell values -->
+        <div class="cell" id="cell-0-0"></div>
+        <div class="cell" id="cell-0-1"></div>
+        <!-- ... Add 14 more cells for 4x4 grid -->
+      </div>
+      <div id="dynamic-grid" class="grid">
+        <!-- Dynamic overlay for final positions -->
+        <div class="dynamic-cell" id="dcell-0-0"></div>
+        <!-- ... Add 14 more dynamic cells -->
+      </div>
+    </div>
+    <button id="start">Start Tracking</button>
+    <button id="stop">Stop Tracking</button>
+    <p id="status">Status: Waiting to start</p>
+  </div>
+  <script src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <script src="script.js"></script>
+</body>
 </html>
